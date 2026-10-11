@@ -42,6 +42,85 @@
 -----------------------------------------------------------------
 
 ]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+local blockedKeywords = {"Kick", "Ban", "AC", "AntiCheat", "Memer", "Report", "Flag"}
+
+-- Block remote events and functions
+local function blockRemotes()
+    for _, descendant in pairs(ReplicatedStorage:GetDescendants()) do
+        if descendant:IsA("RemoteEvent") then
+            for _, keyword in pairs(blockedKeywords) do
+                if descendant.Name:find(keyword) then
+                    pcall(function()
+                        descendant.FireServer = function() return end
+                    end)
+                    print("Blocked RemoteEvent: " .. descendant.Name)
+                    break
+                end
+            end
+        elseif descendant:IsA("RemoteFunction") then
+            for _, keyword in pairs(blockedKeywords) do
+                if descendant.Name:find(keyword) then
+                    pcall(function()
+                        descendant.InvokeServer = function() return end
+                    end)
+                    print("Blocked RemoteFunction: " .. descendant.Name)
+                    break
+                end
+            end
+        end
+    end
+end
+
+-- Remove anticheat from CoreGui
+local function removeAnticheat()
+    if CoreGui then
+        for _, descendant in pairs(CoreGui:GetDescendants()) do
+            if descendant.Name and descendant.Name:lower():find("anticheat") then
+                pcall(function()
+                    descendant:Destroy()
+                end)
+                print("Removed Anticheat: " .. descendant.Name)
+            end
+        end
+    end
+end
+
+-- Disable kick functions
+local function disableKicks()
+    pcall(function()
+        game.Kick = function() return end
+    end)
+    
+    if LocalPlayer then
+        pcall(function()
+            LocalPlayer.Kick = function() return end
+        end)
+    end
+end
+
+-- Reapply bypass on character respawn
+local function setupReapplication()
+    if LocalPlayer then
+        LocalPlayer.CharacterAdded:Connect(function()
+            task.wait(0.5)
+            blockRemotes()
+            print("Bypass reapplied after respawn")
+        end)
+    end
+end
+
+-- Execute all functions
+blockRemotes()
+removeAnticheat()
+disableKicks()
+setupReapplication()
+
+print("Bypass loaded - Made by West")
 
 local arguments = table.pack(...)
 local sharedEnv = getgenv and getgenv() or _G
